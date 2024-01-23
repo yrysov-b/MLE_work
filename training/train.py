@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.metrics import accuracy_score
 import pandas as pd
 import pickle
+import logging
 
 # Define the neural network model
 class IrisClassifier(nn.Module):
@@ -45,7 +46,8 @@ def train_model(X_train, y_train):
         optimizer.step()
 
         if epoch % 10 == 0:
-            print(f'Epoch {epoch}, Loss: {loss.item()}')
+            logging.info(f"Epoch {epoch}, Loss: {loss.item()}")
+            print(f"Epoch {epoch}, Loss: {loss.item()}")
 
     return model
 
@@ -57,6 +59,8 @@ def evaluate_model(model, X, y):
     _, predicted = torch.max(outputs, 1)
 
     accuracy = accuracy_score(y, predicted.numpy())
+    
+    logging.info(f'Accuracy: {accuracy * 100:.2f}%')
     print(f'Accuracy: {accuracy * 100:.2f}%')
 
 def save_model(model, filepath='models/model.pickle'):
@@ -65,6 +69,12 @@ def save_model(model, filepath='models/model.pickle'):
     
     with open(filepath, 'wb') as file:
         pickle.dump(model, file)
+
+def inference(model, X):
+    inputs = torch.Tensor(X).float()
+    outputs = model(inputs)
+    _, predicted = torch.max(outputs, 1)
+    return predicted.numpy()
 
 def main():
     # Load data
