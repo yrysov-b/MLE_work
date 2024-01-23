@@ -5,6 +5,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.metrics import accuracy_score
 import pandas as pd
+import pickle
 
 # Define the neural network model
 class IrisClassifier(nn.Module):
@@ -58,11 +59,12 @@ def evaluate_model(model, X, y):
     accuracy = accuracy_score(y, predicted.numpy())
     print(f'Accuracy: {accuracy * 100:.2f}%')
 
-def save_model(model, directory='models', filename='iris_model.pth'):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    filepath = os.path.join(directory, filename)
-    torch.save(model.state_dict(), filepath)
+def save_model(model, filepath='models/model.pickle'):
+    if not os.path.exists('models'):
+        os.makedirs('models')
+    
+    with open(filepath, 'wb') as file:
+        pickle.dump(model, file)
 
 def main():
     # Load data
