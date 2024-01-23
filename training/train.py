@@ -1,4 +1,3 @@
-import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -7,8 +6,17 @@ from sklearn.metrics import accuracy_score
 import pandas as pd
 import pickle
 import logging
+import os
+import time
 
-# Define the neural network model
+RESULTS_DIR = 'results'
+LOG_FILE = os.path.join(RESULTS_DIR, 'training_log.txt')
+
+# Create the "results" folder if it doesn't exist
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
+logging.basicConfig(level=logging.INFO, handlers=[logging.FileHandler(LOG_FILE, 'w', 'utf-8')])
+
 class IrisClassifier(nn.Module):
     def __init__(self):
         super(IrisClassifier, self).__init__()
@@ -18,22 +26,20 @@ class IrisClassifier(nn.Module):
         return self.fc(x)
 
 def load_data():
-    # Load training data
+    logging.info("Loading training data...")
     train_data = pd.read_csv('data/train_data.csv')
     X_train = train_data.drop('label', axis=1).values
     y_train = train_data['label'].values
-
-    # Load inference data
-    inference_data = pd.read_csv('data/inference_data.csv')
-    X_inference = inference_data.drop('label', axis=1).values
-    y_inference = inference_data['label'].values
-
-    return X_train, y_train, X_inference, y_inference
+    logging.info(f"Training dataset size: {len(train_data)}")
+    return X_train, y_train
 
 def train_model(X_train, y_train):
+    logging.info("Training model...")
     model = IrisClassifier()
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    start_time = time.time()
 
     for epoch in range(1000):
         inputs = torch.Tensor(X_train).float()
@@ -49,45 +55,33 @@ def train_model(X_train, y_train):
             logging.info(f"Epoch {epoch}, Loss: {loss.item()}")
             print(f"Epoch {epoch}, Loss: {loss.item()}")
 
+    end_time = time.time()
+    training_time = end_time - start_time
+    logging.info(f"Training time: {training_time} seconds")
+
     return model
-
-def evaluate_model(model, X, y):
-    inputs = torch.Tensor(X).float()
-    labels = torch.LongTensor(y)
-
-    outputs = model(inputs)
-    _, predicted = torch.max(outputs, 1)
-
-    accuracy = accuracy_score(y, predicted.numpy())
-    
-    logging.info(f'Accuracy: {accuracy * 100:.2f}%')
-    print(f'Accuracy: {accuracy * 100:.2f}%')
 
 def save_model(model, filepath='models/model.pickle'):
     if not os.path.exists('models'):
         os.makedirs('models')
-    
+
     with open(filepath, 'wb') as file:
         pickle.dump(model, file)
 
-def inference(model, X):
-    inputs = torch.Tensor(X).float()
-    outputs = model(inputs)
-    _, predicted = torch.max(outputs, 1)
-    return predicted.numpy()
+def run_training():
+    try:
+        X_train, y_train = load_data()
+        if len(X_train) == 0 or len(y_train) == 0:
+            raise ValueError("Empty training dataset.")
 
-def main():
-    # Load data
-    X_train, y_train, X_inference, y_inference = load_data()
+        model = train_model(X_train, y_train)
 
-    # Train model
-    model = train_model(X_train, y_train)
+        # Save the model
+        save_model(model)
 
-    # Evaluate model
-    evaluate_model(model, X_inference, y_inference)
-
-    # Save model in the "models" directory
-    save_model(model)
+        logging.info("Training completed successfully.")
+    except Exception as e:
+        logging.error(f"Error during training: {str(e)}")
 
 if __name__ == "__main__":
-    main()
+    run_training()

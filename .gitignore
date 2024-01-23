@@ -13,7 +13,6 @@ mlruns/
 *.csv
 *.pickle
 *.pyc
-
 # Environment Variables
 .env
 
